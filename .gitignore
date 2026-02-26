@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+frontend/.next/
+backend/venv/
+__pycache__/
+*.pyc
+.env
+.env.local
+*.env
+!.env.example
+!.env.local.example
+backend/.env
+backend/instance/
+*.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
