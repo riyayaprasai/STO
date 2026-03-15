@@ -28,6 +28,9 @@ export default function Header() {
           <Link href="/chat" className="text-sto-muted hover:text-sto-accent transition">
             Chat
           </Link>
+          <Link href="/wireframe" className="text-sto-muted hover:text-sto-accent transition">
+            Wireframe
+          </Link>
           {!loading && (
             user ? (
               <span className="flex items-center gap-3">
