@@ -28,6 +28,10 @@ def get_conn():
         conn.close()
 
 
+# Compatibility alias used by routes/tests.
+get_db = get_conn
+
+
 def init_db():
     """Create tables if they don't exist. Call once at app startup."""
     with get_conn() as conn:
@@ -55,6 +59,16 @@ def init_db():
                 avg_price REAL NOT NULL,
                 PRIMARY KEY (user_id, symbol),
                 FOREIGN KEY (user_id) REFERENCES portfolios(user_id) ON DELETE CASCADE
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sentiment_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                symbol TEXT NOT NULL,
+                score REAL NOT NULL,
+                label TEXT NOT NULL,
+                mentions INTEGER DEFAULT 0,
+                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -140,7 +154,3 @@ def set_position(user_id, symbol, quantity, avg_price):
                 """,
                 (user_id, symbol, quantity, avg_price),
             )
-</think>
-Fixing portfolio updates: SQLite's INSERT ... ON CONFLICT doesn't correctly update avg_price when adding to a position. Implementing proper position update/insert and delete helpers:
-<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
-StrReplace
