@@ -1,33 +1,82 @@
-import re
-from services.sentiment_service import get_sentiment_for_symbol
+"""
+STO Chatbot Service — HuggingFace Transformers upgrade.
 
-# Preliminary rule-based responses (replace with GPT/LLM later)
-KEYWORDS = {
-    "sentiment": "You can check sentiment from the Sentiment page. STO is social trend observant — we pull in what people are saying on Reddit, Twitter, and news. Right now overall market sentiment is neutral to slightly positive.",
-    "stock": "For a specific ticker, use the Sentiment page or ask me about a symbol like AAPL or GME. I'll look it up for you.",
-    "trading": "STO has a practice trading area so you can try strategies with play money. Open the Practice trading tab to use your virtual portfolio.",
-    "help": "I can help with: sentiment (overall or by ticker), how to use practice trading, and anything about STO. STO is social trend observant — we help you see what’s trending. Try asking 'What's the sentiment for AAPL?' or 'How does practice trading work?'",
-    "hello": "Hi! I'm the STO assistant — STO is social trend observant. I can help with market sentiment and the practice trading simulator. What would you like to know?",
-}
+Uses zero-shot intent classification (BART-MNLI) and text generation
+(FLAN-T5) to interpret user queries, identify intent, and return
+context-aware responses using live sentiment data.
+"""
+
+import logging
+
+from services.intent_classifier import classify_intent
+from services.response_generator import generate_response
+from services.sentiment_service import get_sentiment_for_symbol, get_sentiment_overview
+
+log = logging.getLogger(__name__)
 
 
-def chat(user_message):
-    msg = (user_message or "").strip().lower()
+def chat(user_message: str) -> str:
+    msg = (user_message or "").strip()
     if not msg:
         return "Please type a message."
 
-    # Ticker mention (e.g. AAPL, GME)
-    ticker_match = re.search(r"\b([A-Z]{2,5})\b", user_message.strip(), re.I)
-    if ticker_match:
-        symbol = ticker_match.group(1).upper()
-        data = get_sentiment_for_symbol(symbol)
-        score = data.get("score", 0.5)
-        label = data.get("label", "neutral")
-        mentions = data.get("mentions", 0)
-        return f"Sentiment for {symbol}: {label} (score {score:.2f}, {mentions} mentions in our sources). This is not financial advice — use the dashboard for full details."
+    try:
+        return _chat_with_ai(msg)
+    except Exception as exc:
+        log.exception("AI chatbot error, falling back: %s", exc)
+        return _fallback(msg)
 
-    for keyword, response in KEYWORDS.items():
-        if keyword in msg:
-            return response
 
-    return "I'm the STO assistant — we're social trend observant! Ask about sentiment, a stock ticker (e.g. AAPL, GME), or the practice trading simulator and I'll do my best to help."
+def _chat_with_ai(message: str) -> str:
+    """Main AI pipeline: classify intent → fetch data → generate response."""
+
+    # Step 1: Classify intent and extract ticker symbols
+    classification = classify_intent(message)
+    intent = classification["intent"]
+    symbols = classification["symbols"]
+    confidence = classification["confidence"]
+
+    log.info("Intent: %s (%.2f), symbols: %s", intent, confidence, symbols)
+
+    # Step 2: Fetch live data based on intent
+    context = {"user_message": message, "symbols": symbols}
+
+    if intent in ("symbol_sentiment", "stock_info", "compare"):
+        symbols_data = []
+        for sym in symbols:
+            data = get_sentiment_for_symbol(sym)
+            symbols_data.append(data)
+        context["symbols_data"] = symbols_data
+
+    if intent == "market_overview":
+        context["overview"] = get_sentiment_overview()
+
+    # If user mentioned symbols but intent was market_overview, fetch both
+    if intent == "market_overview" and symbols:
+        symbols_data = [get_sentiment_for_symbol(s) for s in symbols]
+        context["symbols_data"] = symbols_data
+
+    # Step 3: Generate context-aware response
+    reply = generate_response(intent, context)
+    return reply
+
+
+def _fallback(message: str) -> str:
+    """Simple keyword fallback if the AI pipeline fails."""
+    msg = message.lower()
+
+    if any(w in msg for w in ("hello", "hi", "hey")):
+        return (
+            "Hi! I'm the STO assistant. I can help with market sentiment "
+            "and practice trading. What would you like to know?"
+        )
+    if "help" in msg:
+        return (
+            "I can help with: stock sentiment (try 'What's the sentiment for AAPL?'), "
+            "market overview, and practice trading guidance."
+        )
+    return (
+        "I'm the STO assistant — Social Trend Observant! "
+        "Ask about sentiment, a stock ticker (e.g. AAPL, GME), "
+        "or the practice trading simulator."
+    )

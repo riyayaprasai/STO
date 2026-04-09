@@ -1,5 +1,4 @@
 from flask import Blueprint, jsonify, request
-from config import Config
 from db import get_db
 from services.sentiment_service import get_sentiment_overview, get_sentiment_for_symbol
 
@@ -20,18 +19,31 @@ def by_symbol(symbol):
     data = get_sentiment_for_symbol(symbol)
     try:
         with get_db() as conn:
-            conn.execute(
+            # Hourly deduplication: skip insert if a row for this symbol
+            # was recorded less than 1 hour ago.
+            recent = conn.execute(
                 """
-                INSERT INTO sentiment_history (symbol, score, label, mentions)
-                VALUES (?, ?, ?, ?)
+                SELECT id FROM sentiment_history
+                WHERE symbol = ?
+                  AND recorded_at > datetime('now', '-1 hour')
+                LIMIT 1
                 """,
-                (
-                    symbol,
-                    float(data.get("score", 0.5)),
-                    data.get("label", "neutral"),
-                    int(data.get("mentions", 0)),
-                ),
-            )
+                (symbol,),
+            ).fetchone()
+
+            if not recent:
+                conn.execute(
+                    """
+                    INSERT INTO sentiment_history (symbol, score, label, mentions)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        symbol,
+                        float(data.get("score", 0.5)),
+                        data.get("label", "neutral"),
+                        int(data.get("mentions", 0)),
+                    ),
+                )
     except Exception as e:
         # Never block the sentiment endpoint if DB persistence fails.
         print(f"DB INSERT ERROR: {e}")
@@ -65,7 +77,8 @@ def trends():
 
         # Keep chart stable during early development.
         if len(rows) >= 2:
-            trend = [{"date": row["recorded_at"], "score": row["score"]} for row in rows]
+            # Reverse so trend is chronological (oldest first) for charts.
+            trend = [{"date": row["recorded_at"], "score": row["score"]} for row in reversed(rows)]
         else:
             trend = stub_trend
     except Exception:

@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "STO Backend (Flask)",
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["/Users/riyaprasai/Desktop/STO-repo/backend/app.py"],
+      "port": 5000,
+      "autoPort": true
+    },
+    {
+      "name": "STO Frontend (Next.js)",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["/Users/riyaprasai/Desktop/STO-repo/frontend/node_modules/.bin/next", "dev"],
+      "port": 3000,
+      "autoPort": true,
+      "cwd": "/Users/riyaprasai/Desktop/STO-repo/frontend"
+    }
+  ]
+}

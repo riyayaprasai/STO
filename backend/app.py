@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from flask_cors import CORS
 
@@ -12,7 +14,7 @@ from routes.auth import auth_bp
 app = Flask(__name__)
 app.config.from_object(Config)
 init_db()
-CORS(app, origins=["http://localhost:3000"], supports_credentials=True)
+CORS(app, origins=[r"http://localhost:\d+"], supports_credentials=True)
 
 app.register_blueprint(health_bp, url_prefix="/api")
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -27,4 +29,5 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, port=port)
