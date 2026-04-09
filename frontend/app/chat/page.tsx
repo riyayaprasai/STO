@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<{ role: "user" | "bot"; text: string }[]>([
-    { role: "bot", text: "Hi! I’m the STO assistant — STO is social trend observant, so I can help you understand what people are saying about the market and how to use this app. Ask me about sentiment, a ticker like AAPL or GME, or practice trading." },
+    { role: "bot", text: "Hi! I'm the STO assistant — STO is social trend observant, so I can help you understand what people are saying about the market and how to use this app. Ask me about sentiment, a ticker like AAPL or GME, or practice trading." },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,9 +15,7 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
+  async function sendMessage(text: string) {
     if (!text || loading) return;
     setInput("");
     setMessages((m) => [...m, { role: "user", text }]);
@@ -25,14 +23,19 @@ export default function ChatPage() {
     try {
       const res = await api.chat(text);
       setMessages((m) => [...m, { role: "bot", text: res.reply }]);
-    } catch {
+    } catch (_err) {
       setMessages((m) => [
         ...m,
-        { role: "bot", text: "Sorry, I couldn’t reach the server. Is the backend running?" },
+        { role: "bot", text: "Sorry, I couldn't reach the server. Is the backend running?" },
       ]);
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    sendMessage(input.trim());
   }
 
   return (
@@ -103,9 +106,21 @@ export default function ChatPage() {
           <div className="rounded-sto-lg border border-sto-cardBorder bg-sto-card p-4 shadow-sto">
             <p className="text-xs uppercase tracking-wide text-sto-muted">Use-case cards</p>
             <div className="mt-2 space-y-2 text-sm text-sto-text">
-              <div className="rounded-lg border border-sto-cardBorder bg-white p-2">💡 “What’s the sentiment for MSFT this week?”</div>
-              <div className="rounded-lg border border-sto-cardBorder bg-white p-2">📈 “Show me top tickers by mentions”</div>
-              <div className="rounded-lg border border-sto-cardBorder bg-white p-2">🎯 “How do I practice trading safely?”</div>
+              {[
+                { emoji: "💡", text: "What's the sentiment for MSFT this week?" },
+                { emoji: "📈", text: "Show me top tickers by mentions" },
+                { emoji: "🎯", text: "How do I practice trading safely?" },
+              ].map((card) => (
+                <button
+                  key={card.text}
+                  type="button"
+                  onClick={() => sendMessage(card.text)}
+                  disabled={loading}
+                  className="w-full text-left rounded-lg border border-sto-cardBorder bg-white p-2 hover:border-sto-accent/50 disabled:opacity-50 transition"
+                >
+                  {card.emoji} &quot;{card.text}&quot;
+                </button>
+              ))}
             </div>
           </div>
           <div className="rounded-sto-lg border border-sto-cardBorder bg-sto-card p-4 shadow-sto">
@@ -117,7 +132,13 @@ export default function ChatPage() {
                 "Interpret trend",
                 "Risk guidance",
               ].map((p) => (
-                <button key={p} type="button" className="rounded-md border border-sto-cardBorder bg-white px-2 py-1.5 text-left hover:border-sto-accent/50">
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => sendMessage(p)}
+                  disabled={loading}
+                  className="rounded-md border border-sto-cardBorder bg-white px-2 py-1.5 text-left hover:border-sto-accent/50 disabled:opacity-50 transition"
+                >
                   {p}
                 </button>
               ))}

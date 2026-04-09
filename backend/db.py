@@ -71,6 +71,10 @@ def init_db():
                 recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE INDEX IF NOT EXISTS idx_sentiment_symbol_time
+            ON sentiment_history (symbol, recorded_at)
+        """)
 
 
 # --- Auth helpers ---
