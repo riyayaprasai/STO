@@ -135,9 +135,14 @@ app = FastAPI(
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 
+origins = [
+    "https://stock-search-three.vercel.app","https://stock-search-three.vercel.app/",
+    "http://localhost:3000", # Good for local testing
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,             # Use the list, not ["*"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
