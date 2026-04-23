@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - API Key Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .api-key {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .copy-btn {
+            cursor: pointer;
+        }
+        .copy-btn:hover {
+            color: #0d6efd;
+        }
+        .error-message {
+            color: #dc3545;
+            margin-top: 10px;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="header-container">
+            <h1>API Key Management</h1>
+            <button id="logoutBtn" class="btn btn-outline-danger">Logout</button>
+        </div>
+        
+        <!-- Create User Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Create New User</h5>
+            </div>
+            <div class="card-body">
+                <form id="createUserForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tier" class="form-label">Tier</label>
+                        <select class="form-select" id="tier" required>
+                            <option value="free" selected>free</option>
+                            <option value="developer">developer</option>
+                            <option value="business">business</option>
+                            <option value="enterprise">enterprise</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </form>
+                <div id="createError" class="error-message"></div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Existing Users</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>API Key</th>
+                                <th>Tier</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="loadError" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                // Make a request to a non-existent endpoint to trigger 401
+                const response = await fetch('/admin/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('logout:logout')
+                    }
+                });
+                
+                // Clear any stored credentials
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    // For local development
+                    window.location.href = '/admin';
+                } else {
+                    // For production, redirect to a different domain to clear credentials
+                    window.location.href = window.location.origin + '/admin?logout=true';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        });
+
+        // Check for logout parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('logout') === 'true') {
+            // Clear the URL parameter
+            window.history.replaceState({}, document.title, '/admin');
+        }
+
+        // Function to load users
+        async function loadUsers() {
+            try {
+                const response = await fetch('/admin/users');
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.reload(); // Reload to trigger auth prompt
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const users = await response.json();
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td>
+                            <span class="api-key">${user.api_key}</span>
+                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyApiKey(this)">
+                                Copy
+                            </button>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2 align-items-center">
+                                <select class="form-select form-select-sm" data-user-id="${user.id}">
+                                    <option value="free" ${user.tier === "free" ? "selected" : ""}>free</option>
+                                    <option value="developer" ${user.tier === "developer" ? "selected" : ""}>developer</option>
+                                    <option value="business" ${user.tier === "business" ? "selected" : ""}>business</option>
+                                    <option value="enterprise" ${user.tier === "enterprise" ? "selected" : ""}>enterprise</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-success" onclick="updateUserTier(${user.id}, this)">
+                                    Save
+                                </button>
+                            </div>
+                        </td>
+                        <td>${new Date(user.created_at).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">
+                                Delete
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                document.getElementById('loadError').textContent = 'Error loading users: ' + error.message;
+            }
+        }
+
+        // Function to create user
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const tier = document.getElementById('tier').value;
+            const errorDiv = document.getElementById('createError');
+            
+            try {
+                const response = await fetch('/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, email, tier })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.reload(); // Reload to trigger auth prompt
+                        return;
+                    }
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to create user');
+                }
+
+                const result = await response.json();
+                document.getElementById('createUserForm').reset();
+                errorDiv.textContent = '';
+                loadUsers();
+            } catch (error) {
+                errorDiv.textContent = error.message;
+            }
+        });
+
+        // Function to delete user
+        async function deleteUser(userId) {
+            if (!confirm('Are you sure you want to delete this user?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/users/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.reload(); // Reload to trigger auth prompt
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                loadUsers();
+            } catch (error) {
+                alert('Error deleting user: ' + error.message);
+            }
+        }
+
+        // Function to copy API key
+        function copyApiKey(button) {
+            const apiKey = button.previousElementSibling.textContent;
+            navigator.clipboard.writeText(apiKey).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        async function updateUserTier(userId, button) {
+            const select = document.querySelector(`select[data-user-id="${userId}"]`);
+            const tier = select.value;
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Saving...';
+            try {
+                const response = await fetch(`/admin/users/${userId}/tier`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tier })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.reload();
+                        return;
+                    }
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to update tier');
+                }
+
+                button.textContent = 'Saved';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 1200);
+            } catch (error) {
+                alert('Error updating tier: ' + error.message);
+                button.textContent = originalText;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        // Load users when page loads
+        loadUsers();
+    </script>
+</body>
+</html> 
