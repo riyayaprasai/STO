@@ -1,0 +1,41 @@
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Database
+sqlalchemy
+
+# Validation / serialisation
+pydantic[email]
+
+# HTTP & feed parsing (stdlib xml used for RSS; no feedparser needed)
+aiohttp
+requests
+certifi
+
+# Sentiment analysis
+textblob
+
+# HTML parsing (used by legacy finance routes)
+beautifulsoup4
+
+# JWT & password hashing (STO frontend auth)
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Config
+python-dotenv
+
+# Templating (admin UI)
+jinja2
+
+# Testing
+pytest
+httpx
+pytest-asyncio
+pytest-mock
+pytest-cov
+aioresponses
+responses
+yfinance
+httpx
