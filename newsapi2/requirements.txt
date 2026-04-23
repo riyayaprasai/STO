@@ -12,6 +12,7 @@ pydantic[email]
 aiohttp
 requests
 certifi
+bcrypt==4.0.1
 
 # Sentiment analysis
 textblob
