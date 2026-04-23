@@ -44,3 +44,4 @@ PyPDF2
 
 # Stock Data
 yfinance
+lxml_html_clean
