@@ -37,5 +37,10 @@ pytest-mock
 pytest-cov
 aioresponses
 responses
+
+# Content extraction
+trafilatura
+PyPDF2
+
+# Stock Data
 yfinance
-httpx
