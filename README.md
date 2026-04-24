@@ -14,7 +14,7 @@ A friendly, AI-powered platform that observes social trends: it evaluates and qu
 | Layer   | Stack                    |
 |--------|--------------------------|
 | Frontend | Next.js, Tailwind CSS   |
-| Backend  | Flask, SQLite (local)   |
+| Backend  | FastAPI, SQLite (local) |
 | APIs     | Reddit (PRAW), Twitter, NewsAPI |
 | ML       | Hugging Face (e.g. FinBERT) |
 
@@ -25,27 +25,39 @@ A friendly, AI-powered platform that observes social trends: it evaluates and qu
 - Node.js 18+
 - Python 3.10+
 
-### Backend
+### Running the Application
 
-The backend uses **SQLite** — a local, file-based SQL database. No database server needed; data is stored in `backend/instance/stoopid.db`.
+Use the provided `start.sh` script to run both backend and frontend:
 
 ```bash
-cd backend
+bash start.sh
+```
+
+This will:
+- Install backend dependencies and start the FastAPI server on `http://localhost:8000`
+- Install frontend dependencies and start the Next.js dev server on `http://localhost:3000`
+
+### Manual Setup (Alternative)
+
+#### Backend
+
+The backend uses **SQLite** — a local, file-based SQL database. No database server needed; data is stored in `newsapi2/instance/stoopid.db`.
+
+```bash
+cd newsapi2
 python -m venv venv
 source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env      # Optional: API keys, SECRET_KEY
-flask run
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-API runs at `http://localhost:5000`.
+API runs at `http://localhost:8000` (API docs: `/docs`).
 
-### Frontend
+#### Frontend
 
 ```bash
 cd frontend
 npm install
-cp .env.local.example .env.local   # Set NEXT_PUBLIC_API_URL if needed
 npm run dev
 ```
 
