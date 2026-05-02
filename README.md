@@ -1,7 +1,7 @@
 # STO — Social Trend Observant
 
-A friendly, AI-powered platform that observes social trends: it evaluates and quantifies sentiment in real time from social media (Reddit, Twitter) and news, and offers a risk-free practice trading environment for everyday investors.
-
+A friendly, AI-powered platform that observes social trends: it evaluates and quantifies sentiment in real time from social media (Reddit, Twitter) and news, and offers a risk-free practice trading environment for everyday investors. 
+### Hosted Link: https://stock-search-three.vercel.app/
 ## Features
 
 - **Sentiment Analysis Dashboard** — Real-time market sentiment from social media using NLP
